@@ -1,6 +1,7 @@
 import customtkinter as ctk
 
 # Fadil message
+# Abdullah message
 
 # Set appearance and theme (optional)
 ctk.set_appearance_mode("System")  # Options: "Light", "Dark", "System"
