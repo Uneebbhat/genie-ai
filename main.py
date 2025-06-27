@@ -1,47 +1,63 @@
 import customtkinter as ctk
 
-# Fadil message
-# Abdullah message
+# --- Setup appearance and theme ---
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
-# Set appearance and theme (optional)
-ctk.set_appearance_mode("System")  # Options: "Light", "Dark", "System"
-ctk.set_default_color_theme("blue")  # Theme colors: "blue", "green", "dark-blue"
-
-# Create main window
+#  Create main window 
 root = ctk.CTk()
+root.geometry("400x450")
+root.title("Genie AI")
 
-# Set window size and title
-root.geometry("1020x768")
-root.title("CustomTkinter Multi-Screen App")
+#  Creating the main login frame 
+login_frame = ctk.CTkFrame(master=root, corner_radius=10)
+login_frame.pack(expand=True, padx=20, pady=20)
 
-# Create both frames (screens)
-home_frame = ctk.CTkFrame(master=root)
-settings_frame = ctk.CTkFrame(master=root)
+#  Login Functions
+def on_login():
+    print("Login clicked:", email_entry.get(), password_entry.get())
 
-# --- Home Screen ---
-def show_home():
-    settings_frame.pack_forget()
-    home_frame.pack(fill="both", expand=True)
+def on_signup():
+    print("Signup clicked")
 
-home_label = ctk.CTkLabel(home_frame, text="Home Screen", font=("Arial", 20))
-home_label.pack(pady=30)
+# --- Build Login UI ---
+def show_login():
+    # Title
+    title_label = ctk.CTkLabel(login_frame, text="Hello, Login to Genie AI", font=("", 20))
+    title_label.pack(pady=(10, 30))
 
-home_button = ctk.CTkButton(home_frame, text="Go to Settings", command=lambda:show_settings())
-home_button.pack()
+    # Email
+    global email_entry
+    email_entry = ctk.CTkEntry(login_frame, placeholder_text="Email", width=300)
+    email_entry.pack(pady=(0, 8), padx=10)  # Top=0, Bottom=8
 
-# --- Settings Screen ---
-def show_settings():
-    home_frame.pack_forget()
-    settings_frame.pack(fill="both", expand=True)
+    # Password
+    global password_entry
+    password_entry = ctk.CTkEntry(login_frame, placeholder_text="Password", show="*", width=300)
+    password_entry.pack(pady=(0, 8), padx=10)
 
-settings_label = ctk.CTkLabel(settings_frame, text="Settings Screen", font=("Arial", 20))
-settings_label.pack(pady=30)
+    # Login Button
+    login_btn = ctk.CTkButton(login_frame, text="Login", command=on_login, width=300)
+    login_btn.pack(pady=(0, 8), padx=10)
 
-settings_button = ctk.CTkButton(settings_frame, text="Back to Home", command=show_home)
-settings_button.pack()
+    # OR label
+    or_label = ctk.CTkLabel(login_frame, text="OR")
+    or_label.pack(pady=(8, 16))  # 8 above, 16 below
 
-# Show home screen initially
-show_home()
+    # Signup Button
+    signup_btn = ctk.CTkButton(
+        login_frame,
+        text="Signup",
+        command=on_signup,
+        fg_color=None,
+        border_color="#0078D7",
+        text_color="#FFFFFF",
+        width=300
+    )
+    signup_btn.pack(pady=(0, 0), padx=10)
 
-# Run the app
+#  Call login screen setup 
+show_login()
+
+# --- Start the GUI loop ---
 root.mainloop()
