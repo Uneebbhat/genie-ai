@@ -23,10 +23,7 @@ def clear_frame(frame: ctk.CTkFrame) -> None:
     for child in frame.winfo_children():
         child.destroy()
 
-# ── Business-logic actions (no UI code here) ───────────────────────────────────
-def handle_login(email: str, password: str) -> None:
-    # TODO: Replace print() with real authentication in production
-    print("Login clicked:", email, password)
+
 
 def handle_signup(name: str, email: str, password: str) -> None:
     # TODO: Replace print() with persistence / API call
@@ -36,49 +33,61 @@ def handle_signup(name: str, email: str, password: str) -> None:
     print("Password:", password)
 
 # ── UI-builder: Login screen ───────────────────────────────────────────────────
-def show_login() -> None:
-    signup_frame.pack_forget()                 # Hide the other frame (if visible)
-    clear_frame(login_frame)                   # Start with a clean slate
-    login_frame.pack(expand=True, padx=20, pady=20)
+def show_chat():
+    global login_frame
+    if login_frame:
+        login_frame.pack_forget()
 
-    # Title
-    ctk.CTkLabel(
-        login_frame,
-        text="Hello, Login to Genie AI",
-        font=("", 20)
-    ).pack(pady=(10, 30))
+    success_label = ctk.CTkLabel(root, text="Login Successful!", font=("Arial", 20))
+    success_label.pack(pady=20)
 
-    # Email
-    email_entry = ctk.CTkEntry(login_frame, placeholder_text="Email", width=300)
-    email_entry.pack(pady=(0, 8), padx=10)
 
-    # Password
-    password_entry = ctk.CTkEntry(
-        login_frame, placeholder_text="Password", show="*", width=300
-    )
-    password_entry.pack(pady=(0, 8), padx=10)
+def show_login():
+    global login_frame
 
-    # Login button
-    ctk.CTkButton(
-        login_frame,
-        text="Login",
-        command=lambda: handle_login(email_entry.get(), password_entry.get()),
-        width=300
-    ).pack(pady=(0, 8), padx=10)
+    # Create new login frame
+    login_frame = ctk.CTkFrame(master=root)
+    login_frame.pack(fill="both", expand=True)
 
-    # OR label
-    ctk.CTkLabel(login_frame, text="OR").pack(pady=(8, 16))
+    ctk.CTkLabel(login_frame, text="Login", font=("Arial", 20)).pack(pady=20)
 
-    # Switch-to-Sign-Up button
-    ctk.CTkButton(
-        login_frame,
-        text="Signup",
-        command=show_signup,
-        fg_color=None,
-        border_color="#0078D7",
-        text_color="#FFFFFF",
-        width=300
-    ).pack(pady=(0, 0), padx=10)
+    email_entry = ctk.CTkEntry(login_frame, placeholder_text="Email")
+    email_entry.pack(pady=10)
+
+    password_entry = ctk.CTkEntry(login_frame, placeholder_text="Password", show="*")
+    password_entry.pack(pady=10)
+
+    message_label = ctk.CTkLabel(login_frame, text="", font=("Arial", 12))
+    message_label.pack(pady=10)
+
+    def login():
+        email = email_entry.get().strip()
+        password = password_entry.get().strip()
+
+        if not email or not password:
+            message_label.configure(text="Both fields are required.", text_color="red")
+            return
+
+        try:
+            response = requests.post(
+                "http://127.0.0.1:5000/login",
+                json={"email": email, "password": password}
+            )
+            data = response.json()
+
+            if response.status_code == 200:
+                message_label.configure(text="Login successful! Redirecting...", text_color="green")
+                login_frame.after(1000, show_chat)
+            else:
+                message_label.configure(text=data.get("error", "Login failed."), text_color="red")
+        except Exception as e:
+            message_label.configure(text=f"Error: {e}", text_color="red")
+
+    ctk.CTkButton(login_frame, text="Login", command=login).pack(pady=10)
+
+
+# Start with login screen
+show_login()
 
 # ── UI-builder: Sign-Up screen ────────────────────────────────────────────────
 def show_signup():
