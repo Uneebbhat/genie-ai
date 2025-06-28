@@ -9,7 +9,7 @@ ctk.set_default_color_theme("blue")
 
 # ── Main window ────────────────────────────────────────────────────────────────
 root = ctk.CTk()
-root.geometry("400x450")
+root.geometry("600x700")
 root.title("Genie AI")
 
 # ── Re-usable frames (we swap them in and out) ─────────────────────────────────
@@ -27,6 +27,8 @@ def clear_frame(frame: ctk.CTkFrame) -> None:
     for child in frame.winfo_children():
         child.destroy()
 
+# Global variable to store chat session ID
+chat_session_id = None
 
 def handle_signup(name: str, email: str, password: str, message_label, signup_frame) -> None:
     try:
@@ -50,8 +52,149 @@ def show_chat():
         frame.pack_forget()
     clear_frame(chat_frame)
     chat_frame.pack(fill="both", expand=True, padx=20, pady=20)
-    ctk.CTkLabel(chat_frame, text="Welcome to Genie AI Chat!", font=("Arial", 20)).pack(pady=20)
-    # Add your chat widgets here
+    
+    # Header with gradient-like styling
+    header_frame = ctk.CTkFrame(chat_frame, fg_color=("gray90", "gray20"))
+    header_frame.pack(fill="x", padx=10, pady=(10, 5))
+    
+    ctk.CTkLabel(header_frame, text="🤖 Genie AI Chat", font=("Arial", 22, "bold"), 
+                text_color=("gray20", "white")).pack(pady=15)
+    
+    # Chat messages display area
+    messages_frame = ctk.CTkFrame(chat_frame, fg_color=("gray95", "gray15"))
+    messages_frame.pack(fill="both", expand=True, padx=10, pady=5)
+    
+    # Text widget for displaying messages with better styling
+    messages_text = ctk.CTkTextbox(messages_frame, wrap="word", height=400, 
+                                  font=("Arial", 11), fg_color=("white", "gray10"))
+    messages_text.pack(fill="both", expand=True, padx=10, pady=10)
+    messages_text.configure(state="disabled")  # Make it read-only
+    
+    # Input area with better styling
+    input_frame = ctk.CTkFrame(chat_frame, fg_color=("gray90", "gray20"))
+    input_frame.pack(fill="x", padx=10, pady=(5, 10))
+    
+    # Message input field with better styling
+    message_input = ctk.CTkEntry(input_frame, placeholder_text="💬 Type your message here...", 
+                                height=45, font=("Arial", 12))
+    message_input.pack(side="left", fill="x", expand=True, padx=(15, 8), pady=12)
+    
+    def format_message(sender, message, is_user=True):
+        """Format messages with colors and styling"""
+        timestamp = "🕐 " + "Just now"
+        
+        if is_user:
+            # User message styling
+            formatted_msg = f"\n{'='*50}\n"
+            formatted_msg += f" You • {timestamp}\n"
+            formatted_msg += f"💬 {message}\n"
+            formatted_msg += f"{'='*50}\n"
+        else:
+            # AI message styling
+            formatted_msg = f"\n{'='*50}\n"
+            formatted_msg += f"🤖 Genie AI • {timestamp}\n"
+            formatted_msg += f"✨ {message}\n"
+            formatted_msg += f"{'='*50}\n"
+        
+        return formatted_msg
+    
+    def send_message():
+        global chat_session_id
+        message = message_input.get().strip()
+        if message:
+            # Display user message with formatting
+            messages_text.configure(state="normal")
+            user_formatted = format_message("You", message, is_user=True)
+            messages_text.insert("end", user_formatted)
+            messages_text.configure(state="disabled")
+            messages_text.see("end")  # Auto-scroll to bottom
+            
+            # Clear input field
+            message_input.delete(0, "end")
+            
+            # Disable send button while processing
+            send_button.configure(state="disabled")
+            
+            # Show typing indicator with animation
+            messages_text.configure(state="normal")
+            typing_msg = f"\n{'='*50}\n Genie AI • 🕐 Just now\n💭 Thinking"
+            messages_text.insert("end", typing_msg)
+            messages_text.configure(state="disabled")
+            messages_text.see("end")
+            
+            # Send message to backend API
+            try:
+                response = requests.post(
+                    "http://127.0.0.1:5000/chat",
+                    json={
+                        "message": message,
+                        "session_id": chat_session_id
+                    },
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    ai_response = data.get("response", "No response received")
+                    chat_session_id = data.get("session_id", chat_session_id)
+                    
+                    # Remove typing indicator and show actual response
+                    messages_text.configure(state="normal")
+                    # Remove the typing indicator
+                    last_line_start = messages_text.index("end-3l linestart")
+                    messages_text.delete(last_line_start, "end-1c")
+                    # Add the actual response with formatting
+                    ai_formatted = format_message("Genie AI", ai_response, is_user=False)
+                    messages_text.insert("end", ai_formatted)
+                    messages_text.configure(state="disabled")
+                    messages_text.see("end")
+                else:
+                    error_msg = response.json().get("error", "Unknown error occurred")
+                    # Remove typing indicator and show error
+                    messages_text.configure(state="normal")
+                    last_line_start = messages_text.index("end-3l linestart")
+                    messages_text.delete(last_line_start, "end-1c")
+                    error_formatted = f"\n{'='*50}\n❌ Error • 🕐 Just now\n⚠️ {error_msg}\n{'='*50}\n"
+                    messages_text.insert("end", error_formatted)
+                    messages_text.configure(state="disabled")
+                    messages_text.see("end")
+                    
+            except requests.exceptions.RequestException as e:
+                # Remove typing indicator and show connection error
+                messages_text.configure(state="normal")
+                last_line_start = messages_text.index("end-3l linestart")
+                messages_text.delete(last_line_start, "end-1c")
+                connection_error = f"\n{'='*50}\n❌ Connection Error • 🕐 Just now\n🌐 Unable to reach the server. Please check if the backend is running.\n{'='*50}\n"
+                messages_text.insert("end", connection_error)
+                messages_text.configure(state="disabled")
+                messages_text.see("end")
+            except Exception as e:
+                # Remove typing indicator and show general error
+                messages_text.configure(state="normal")
+                last_line_start = messages_text.index("end-3l linestart")
+                messages_text.delete(last_line_start, "end-1c")
+                general_error = f"\n{'='*50}\n❌ Error • 🕐 Just now\n⚠️ {str(e)}\n{'='*50}\n"
+                messages_text.insert("end", general_error)
+                messages_text.configure(state="disabled")
+                messages_text.see("end")
+            finally:
+                # Re-enable send button
+                send_button.configure(state="normal")
+    
+    # Send button with better styling
+    send_button = ctk.CTkButton(input_frame, text="🚀 Send", command=send_message, 
+                               width=100, height=45, font=("Arial", 12, "bold"),
+                               fg_color=("blue", "darkblue"), hover_color=("darkblue", "blue"))
+    send_button.pack(side="right", padx=(8, 15), pady=12)
+    
+    # Bind Enter key to send message
+    message_input.bind("<Return>", lambda event: send_message())
+    
+    # Add a beautiful welcome message
+    messages_text.configure(state="normal")
+    welcome_msg = f"\n{'='*50}\n Genie AI • 🕐 Just now\n✨ Welcome to Genie AI! I'm here to help you with any questions or tasks. How can I assist you today?\n{'='*50}\n"
+    messages_text.insert("end", welcome_msg)
+    messages_text.configure(state="disabled")
 
 
 def show_login():
