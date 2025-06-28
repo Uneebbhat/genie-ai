@@ -1,5 +1,7 @@
 # main.py
+from tkinter import YES
 import customtkinter as ctk
+import requests
 
 # ── Global appearance ──────────────────────────────────────────────────────────
 ctk.set_appearance_mode("System")
@@ -13,6 +15,8 @@ root.title("Genie AI")
 # ── Re-usable frames (we swap them in and out) ─────────────────────────────────
 login_frame  = ctk.CTkFrame(master=root, corner_radius=10)
 signup_frame = ctk.CTkFrame(master=root, corner_radius=10)
+chat_frame = ctk.CTkFrame(master=root, corner_radius=10)
+settings_frame = ctk.CTkFrame(master=root, corner_radius=10)
 
 # Pack the login frame first; the sign-up frame will be packed on demand
 login_frame.pack(expand=True, padx=20, pady=20)
@@ -24,37 +28,45 @@ def clear_frame(frame: ctk.CTkFrame) -> None:
         child.destroy()
 
 
-
-def handle_signup(name: str, email: str, password: str) -> None:
-    # TODO: Replace print() with persistence / API call
-    print("Signup clicked:")
-    print("Name:", name)
-    print("Email:", email)
-    print("Password:", password)
+def handle_signup(name: str, email: str, password: str, message_label, signup_frame) -> None:
+    try:
+        response = requests.post(
+            "http://127.0.0.1:5000/signup",
+            json={"username": name, "email": email, "password": password}
+        )
+        data = response.json()
+        if response.status_code == 201:
+            message_label.configure(text="Signup successful! Redirecting...", text_color="green")
+            signup_frame.after(1000, show_chat)
+        else:
+            message_label.configure(text=data.get("error", "Signup failed."), text_color="red")
+    except Exception as e:
+        message_label.configure(text=f"Error: {e}", text_color="red")
 
 # ── UI-builder: Login screen ───────────────────────────────────────────────────
 def show_chat():
-    global login_frame
-    if login_frame:
-        login_frame.pack_forget()
-
-    success_label = ctk.CTkLabel(root, text="Login Successful!", font=("Arial", 20))
-    success_label.pack(pady=20)
+    # Hide all other frames
+    for frame in [login_frame, signup_frame, settings_frame]:
+        frame.pack_forget()
+    clear_frame(chat_frame)
+    chat_frame.pack(fill="both", expand=True, padx=20, pady=20)
+    ctk.CTkLabel(chat_frame, text="Welcome to Genie AI Chat!", font=("Arial", 20)).pack(pady=20)
+    # Add your chat widgets here
 
 
 def show_login():
-    global login_frame
-
-    # Create new login frame
-    login_frame = ctk.CTkFrame(master=root)
-    login_frame.pack(fill="both", expand=True)
+    # Hide all frames
+    for frame in [signup_frame, chat_frame, settings_frame]:
+        frame.pack_forget()
+    clear_frame(login_frame)
+    login_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
     ctk.CTkLabel(login_frame, text="Login", font=("Arial", 20)).pack(pady=20)
 
-    email_entry = ctk.CTkEntry(login_frame, placeholder_text="Email")
+    email_entry = ctk.CTkEntry(login_frame, placeholder_text="Email", width=300)
     email_entry.pack(pady=10)
 
-    password_entry = ctk.CTkEntry(login_frame, placeholder_text="Password", show="*")
+    password_entry = ctk.CTkEntry(login_frame, placeholder_text="Password", show="*", width=300)
     password_entry.pack(pady=10)
 
     message_label = ctk.CTkLabel(login_frame, text="", font=("Arial", 12))
@@ -83,7 +95,9 @@ def show_login():
         except Exception as e:
             message_label.configure(text=f"Error: {e}", text_color="red")
 
-    ctk.CTkButton(login_frame, text="Login", command=login).pack(pady=10)
+    ctk.CTkButton(login_frame, text="Login", command=login, width=300).pack(pady=10)
+    ctk.CTkLabel(login_frame, text="OR").pack(pady=(8, 8))
+    ctk.CTkButton(login_frame, text="Go to Signup", command=lambda: show_signup(), width=300).pack(pady=(0, 8))
 
 
 # Start with login screen
@@ -136,46 +150,35 @@ def show_signup():
     ctk.CTkButton(signup_frame, text="Go to Login", command=lambda: [signup_frame.pack_forget(), show_login()]).pack(pady=5)
     login_frame.pack_forget()                  # Hide the login frame
     clear_frame(signup_frame)
-    signup_frame.pack(expand=True, padx=20, pady=20)
+    signup_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-    # Title
-    ctk.CTkLabel(
-        signup_frame,
-        text="Hello, Sign Up to Genie AI",
-        font=("", 20)
-    ).pack(pady=(20, 0))
+    ctk.CTkLabel(signup_frame, text="Sign Up", font=("Arial", 20)).pack(pady=20)
 
-    # Name
     name_entry = ctk.CTkEntry(signup_frame, placeholder_text="Name", width=300)
-    name_entry.pack(pady=(32, 0), padx=10)
+    name_entry.pack(pady=(8, 0), padx=10)
 
-    # Email
     email_entry = ctk.CTkEntry(signup_frame, placeholder_text="Email", width=300)
     email_entry.pack(pady=(8, 0), padx=10)
 
-    # Password
-    password_entry = ctk.CTkEntry(
-        signup_frame, placeholder_text="Password", show="*", width=300
-    )
+    password_entry = ctk.CTkEntry(signup_frame, placeholder_text="Password", show="*", width=300)
     password_entry.pack(pady=(8, 0), padx=10)
 
-    # Sign-Up button
+    message_label = ctk.CTkLabel(signup_frame, text="", font=("Arial", 12))
+    message_label.pack(pady=10)
+
     ctk.CTkButton(
         signup_frame,
         text="Sign Up",
         command=lambda: handle_signup(
-            name_entry.get(), email_entry.get(), password_entry.get()
+            name_entry.get(), email_entry.get(), password_entry.get(), message_label, signup_frame
         ),
         width=300
     ).pack(pady=(16, 0), padx=10)
 
-    # OR label
-    ctk.CTkLabel(signup_frame, text="OR").pack(pady=(8, 16))
-
-    # Switch-to-Login button
+    ctk.CTkLabel(signup_frame, text="OR").pack(pady=(8, 8))
     ctk.CTkButton(
         signup_frame,
-        text="Login",
+        text="Go to Login",
         command=show_login,
         width=300
     ).pack(pady=(0, 8), padx=10)
