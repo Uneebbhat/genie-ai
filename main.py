@@ -2,6 +2,7 @@ from tkinter import filedialog
 from tkinter import filedialog
 import customtkinter as ctk
 import requests
+from bson.json_util import dumps
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -14,8 +15,9 @@ login_frame  = ctk.CTkFrame(master=root, corner_radius=10)
 signup_frame = ctk.CTkFrame(master=root, corner_radius=10)
 chat_frame = ctk.CTkFrame(master=root, corner_radius=10)
 settings_frame = ctk.CTkFrame(master=root, corner_radius=10)
-
 login_frame.pack(expand=True, padx=20, pady=20)
+
+user_email = None
 
 def clear_frame(frame: ctk.CTkFrame) -> None:
     for child in frame.winfo_children():
@@ -24,45 +26,66 @@ def clear_frame(frame: ctk.CTkFrame) -> None:
 chat_session_id = None
 
 def show_settings():
+    global user_email
+    if not user_email:
+        show_login()
+        return
     for frame in [login_frame, signup_frame, chat_frame]:
         frame.pack_forget()
     clear_frame(settings_frame)
     settings_frame.pack(fill="both", expand=True, padx=20, pady=20)
-
     ctk.CTkLabel(settings_frame, text="👤 Profile & Settings", font=("Arial", 22, "bold")).pack(pady=20)
-
+    # Fetch current user info
+    try:
+        response = requests.get("http://127.0.0.1:5000/user", params={"email": user_email}, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            current_name = data.get("username", "")
+            current_email = data.get("email", "")
+        else:
+            current_name = ""
+            current_email = user_email or ""
+    except Exception:
+        current_name = ""
+        current_email = user_email or ""
     # Name Entry
     name_entry = ctk.CTkEntry(settings_frame, placeholder_text="Name", width=300)
-    name_entry.insert(0, "Samaima Tariq")
+    name_entry.insert(0, current_name)
     name_entry.pack(pady=8)
-
     # Email Entry
     email_entry = ctk.CTkEntry(settings_frame, placeholder_text="Email", width=300)
-    email_entry.insert(0, "samaima@example.com")
+    email_entry.insert(0, current_email)
     email_entry.pack(pady=8)
-
     # Password Entry
     password_entry = ctk.CTkEntry(settings_frame, placeholder_text="New Password", show="*", width=300)
     password_entry.pack(pady=8)
-
     # Message Label
     message_label = ctk.CTkLabel(settings_frame, text="", font=("Arial", 12))
     message_label.pack(pady=5)
-
     def save_profile():
+        global user_email
         name = name_entry.get().strip()
         email = email_entry.get().strip()
         password = password_entry.get().strip()
+        payload = {"email": user_email}
+        if name and name != current_name:
+            payload["new_name"] = name
+        if email and email != current_email:
+            payload["new_email"] = email
+        if password:
+            payload["password"] = password
+        print("Sending payload to /update-profile:", payload)  # Debug print
         try:
-            response = requests.post("http://127.0.0.1:5000/update-profile",
-                                     json={"name": name, "email": email, "password": password})
+            response = requests.put("http://127.0.0.1:5000/update-profile", json=payload)
             if response.status_code == 200:
                 message_label.configure(text="✅ Profile updated successfully!", text_color="green")
+                # If email changed, update user_email
+                if "new_email" in payload:
+                    user_email = payload["new_email"]
             else:
                 message_label.configure(text="❌ Update failed.", text_color="red")
         except Exception as e:
-            message_label.configure(text=f"⚠️ Error: {str(e)}", text_color="red")
-
+            message_label.configure(text=f"⚠ Error: {str(e)}", text_color="red")
     ctk.CTkButton(settings_frame, text="💾 Save Changes", command=save_profile, width=300).pack(pady=16)
     ctk.CTkButton(settings_frame, text="🚪 Logout", command=show_login, width=300, fg_color="red").pack(pady=20)
 
@@ -80,7 +103,7 @@ def show_chat():
     ctk.CTkLabel(header_frame, text="🧞 Genie AI Chat", font=("Arial", 22, "bold"),
                  text_color=("gray20", "white")).pack(side="left", padx=10, pady=10)
 
-    settings_btn = ctk.CTkButton(header_frame, text="⚙️ Settings", width=100, height=32,
+    settings_btn = ctk.CTkButton(header_frame, text="⚙ Settings", width=100, height=32,
                                  font=("Arial", 16), command=show_settings)
     settings_btn.pack(side="right", padx=10, pady=10)
 
@@ -132,7 +155,7 @@ def show_chat():
             else:
                 reply = response.json().get("error", "Unknown error occurred")
         except Exception as e:
-            reply = f"⚠️ Error: {str(e)}"
+            reply = f"⚠ Error: {str(e)}"
         messages_text.configure(state="normal")
         messages_text.insert("end", format_message("Genie AI", reply, is_user=False))
         messages_text.configure(state="disabled")
@@ -161,7 +184,6 @@ def show_login():
         frame.pack_forget()
     clear_frame(login_frame)
     login_frame.pack(fill="both", expand=True, padx=20, pady=20)
-
     ctk.CTkLabel(login_frame, text="Login", font=("Arial", 20)).pack(pady=20)
     email_entry = ctk.CTkEntry(login_frame, placeholder_text="Email", width=300)
     email_entry.pack(pady=10)
@@ -169,8 +191,8 @@ def show_login():
     password_entry.pack(pady=10)
     message_label = ctk.CTkLabel(login_frame, text="", font=("Arial", 12))
     message_label.pack(pady=10)
-
     def login():
+        global user_email
         email = email_entry.get().strip()
         password = password_entry.get().strip()
         if not email or not password:
@@ -179,17 +201,15 @@ def show_login():
         try:
             response = requests.post("http://127.0.0.1:5000/login",
                                      json={"email": email, "password": password})
-            response = requests.post("http://127.0.0.1:5000/login",
-                                     json={"email": email, "password": password})
             data = response.json()
             if response.status_code == 200:
+                user_email = email
                 message_label.configure(text="Login successful! Redirecting...", text_color="green")
                 login_frame.after(1000, show_chat)
             else:
                 message_label.configure(text=data.get("error", "Login failed."), text_color="red")
         except Exception as e:
             message_label.configure(text=f"Error: {e}", text_color="red")
-
     ctk.CTkButton(login_frame, text="Login", command=login, width=300).pack(pady=10)
     ctk.CTkLabel(login_frame, text="OR").pack(pady=(8, 8))
     ctk.CTkButton(login_frame, text="Go to Signup", command=show_signup, width=300).pack(pady=(0, 8))
@@ -211,11 +231,13 @@ def show_signup():
     message_label.pack(pady=10)
 
     def handle_signup(name, email, password):
+        global user_email
         try:
             response = requests.post("http://127.0.0.1:5000/signup",
                                      json={"username": name, "email": email, "password": password})
             data = response.json()
             if response.status_code == 201:
+                user_email = email
                 message_label.configure(text="Signup successful! Redirecting...", text_color="green")
                 signup_frame.after(1000, show_chat)
             else:
@@ -233,18 +255,44 @@ show_login()
 
 # ── UI-builder: Profile screen ────────────────────────────────────────────────
 def show_profile():
+    global user_email
+    if not user_email:
+        show_login()
+        return
     for frame in [login_frame, signup_frame, chat_frame]:
         frame.pack_forget()
     clear_frame(settings_frame)
     settings_frame.pack(fill="both", expand=True, padx=20, pady=20)
-
-    ctk.CTkLabel(settings_frame, text="👤 User Profile", font=("Arial", 22, "bold")).pack(pady=20)
-
-    ctk.CTkLabel(settings_frame, text="Name: Samaima Tariq", font=("Arial", 14)).pack(pady=8)
-    ctk.CTkLabel(settings_frame, text="Email: samaima@example.com", font=("Arial", 14)).pack(pady=8)
-    ctk.CTkLabel(settings_frame, text="Password: ********", font=("Arial", 14)).pack(pady=8)
-
-    ctk.CTkButton(settings_frame, text="⚙️ Go to Settings", command=lambda: show_settings()).pack(pady=20)
+    ctk.CTkLabel(settings_frame,
+                 text="👤 User Profile",
+                 font=("Arial", 22, "bold")).pack(pady=20)
+    try:
+        response = requests.get(
+            "http://127.0.0.1:5000/user",
+            params={"email": user_email},
+            timeout=5
+        )
+        if response.status_code == 200:
+            data = response.json()
+            name  = data.get("username", "N/A")
+            email = data.get("email",    "N/A")
+        else:
+            raise ValueError(response.json().get("error", "Unknown error"))
+    except Exception as e:
+        name  = "Error"
+        email = str(e)
+    ctk.CTkLabel(settings_frame,
+                 text=f"Name: {name}",
+                 font=("Arial", 14)).pack(pady=8)
+    ctk.CTkLabel(settings_frame,
+                 text=f"Email: {email}",
+                 font=("Arial", 14)).pack(pady=8)
+    ctk.CTkLabel(settings_frame,
+                 text="Password: ********",
+                 font=("Arial", 14)).pack(pady=8)
+    ctk.CTkButton(settings_frame,
+                  text="⚙ Go to Settings",
+                  command=show_settings).pack(pady=20)
 
 
 root.mainloop()
