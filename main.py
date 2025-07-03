@@ -88,7 +88,7 @@ def show_settings():
             message_label.configure(text=f"⚠ Error: {str(e)}", text_color="red")
     ctk.CTkButton(settings_frame, text="💾 Save Changes", command=save_profile, width=300).pack(pady=16)
     ctk.CTkButton(settings_frame, text="🚪 Logout", command=show_login, width=300, fg_color="red").pack(pady=20)
-
+    ctk.CTkButton(settings_frame, text="🔙 Back to Chat", command=show_chat, width=300).pack(pady=8)
 
 def show_chat():
     for frame in [login_frame, signup_frame, settings_frame]:
