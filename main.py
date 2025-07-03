@@ -1,4 +1,5 @@
 from tkinter import filedialog
+from tkinter import filedialog
 import customtkinter as ctk
 import requests
 
@@ -72,6 +73,7 @@ def show_chat():
     clear_frame(chat_frame)
     chat_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
+
     header_frame = ctk.CTkFrame(chat_frame, fg_color=("gray90", "gray20"))
     header_frame.pack(fill="x", padx=10, pady=(10, 5))
 
@@ -90,6 +92,8 @@ def show_chat():
     messages_text.pack(fill="both", expand=True, padx=10, pady=10)
     messages_text.configure(state="disabled")
 
+    messages_text.configure(state="disabled")
+
     input_frame = ctk.CTkFrame(chat_frame, fg_color=("gray90", "gray20"))
     input_frame.pack(fill="x", padx=10, pady=(5, 10))
 
@@ -97,7 +101,12 @@ def show_chat():
                                  height=45, font=("Arial", 16))
     message_input.pack(side="left", fill="x", expand=True, padx=(15, 8), pady=12)
 
+
     def format_message(sender, message, is_user=True):
+        timestamp = "🕐 Just now"
+        msg_type = "💬" if is_user else "✨"
+        return f"\n{'='*50}\n {sender} • {timestamp}\n{msg_type} {message}\n{'='*50}\n"
+
         timestamp = "🕐 Just now"
         msg_type = "💬" if is_user else "✨"
         return f"\n{'='*50}\n {sender} • {timestamp}\n{msg_type} {message}\n{'='*50}\n"
@@ -140,7 +149,9 @@ def show_chat():
     send_button.pack(side="right", padx=(8, 15), pady=12)
     message_input.bind("<Return>", lambda event: send_message())
 
+
     messages_text.configure(state="normal")
+    welcome_msg = format_message("Genie AI", "✨ Welcome to Genie AI! How can I assist you today?", is_user=False)
     welcome_msg = format_message("Genie AI", "✨ Welcome to Genie AI! How can I assist you today?", is_user=False)
     messages_text.insert("end", welcome_msg)
     messages_text.configure(state="disabled")
@@ -166,6 +177,8 @@ def show_login():
             message_label.configure(text="Both fields are required.", text_color="red")
             return
         try:
+            response = requests.post("http://127.0.0.1:5000/login",
+                                     json={"email": email, "password": password})
             response = requests.post("http://127.0.0.1:5000/login",
                                      json={"email": email, "password": password})
             data = response.json()
@@ -231,7 +244,7 @@ def show_profile():
     ctk.CTkLabel(settings_frame, text="Email: samaima@example.com", font=("Arial", 14)).pack(pady=8)
     ctk.CTkLabel(settings_frame, text="Password: ********", font=("Arial", 14)).pack(pady=8)
 
-    ctk.CTkButton(settings_frame, text="⚙️ Go to Settings", command=lambda: print("Settings Clicked")).pack(pady=20)
+    ctk.CTkButton(settings_frame, text="⚙️ Go to Settings", command=lambda: show_settings()).pack(pady=20)
 
 
 root.mainloop()
