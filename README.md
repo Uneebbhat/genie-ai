@@ -14,6 +14,7 @@ Developed for the **Open Source Software** course, Genie AI follows best practic
 - 🧠 Clean separation of API keys and model settings through a configuration module
 - 🗂️ Optional MongoDB integration for saving chat logs
 - 🔐 Secure secrets management using `.env` files
+- 🗝️ Forgot Password feature to securely reset user passwords 
 - 🚀 Open-source workflow with GitHub PR-based collaboration
 
 ---
@@ -105,6 +106,7 @@ MONGODB_URI=your_mongodb_connection_string   # optional
    ```
 3. **Interact with Genie AI:**
    - Enter your queries in the GUI and receive responses powered by Gemini API.
+   - Click **Forgot Password?** on the login screen to reset your password securely if needed.
    - (Optional) If MongoDB is configured, chat logs will be saved automatically.
 
 ---
