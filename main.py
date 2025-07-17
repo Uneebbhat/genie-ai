@@ -79,6 +79,14 @@ def show_login():
     ctk.CTkButton(login_frame, text="🔓 Login", command=login, width=340, height=40, font=FONT_BUTTON).pack(pady=15)
     ctk.CTkLabel(login_frame, text="────────── or ──────────").pack(pady=10)
     ctk.CTkButton(login_frame, text="📝 Go to Signup", command=show_signup, width=340, height=40).pack(pady=5)
+    ctk.CTkButton(
+    login_frame,
+    text="🔑 Forgot Password?",
+    command=show_forgot_password,
+    width=340,
+    height=40,
+    font=FONT_BUTTON
+).pack(pady=5)
 
 # ----------------------------- Show Signup -----------------------------
 def show_signup():
@@ -120,6 +128,45 @@ def show_signup():
     ctk.CTkButton(signup_frame, text="✅ Sign Up", command=signup, width=340, height=40, font=FONT_BUTTON).pack(pady=15)
     ctk.CTkLabel(signup_frame, text="────────── or ──────────").pack(pady=10)
     ctk.CTkButton(signup_frame, text="🔙 Go to Login", command=show_login, width=340, height=40).pack(pady=5)
+
+def show_forgot_password():
+    for frame in [login_frame, signup_frame, chat_frame, settings_frame]:
+        frame.pack_forget()
+    clear_frame(login_frame)
+    login_frame.pack(fill="both", expand=True, padx=30, pady=30)
+
+    ctk.CTkLabel(login_frame, text="🔑 Reset Your Password", font=FONT_TITLE).pack(pady=30)
+
+    email_entry = ctk.CTkEntry(login_frame, placeholder_text="📧 Your Email", width=340, height=40, font=FONT_NORMAL)
+    email_entry.pack(pady=10)
+
+    new_password_entry = ctk.CTkEntry(login_frame, placeholder_text="🔒 New Password", show="*", width=340, height=40, font=FONT_NORMAL)
+    new_password_entry.pack(pady=10)
+
+    message_label = ctk.CTkLabel(login_frame, text="", font=FONT_NORMAL)
+    message_label.pack(pady=10)
+
+    def reset_password():
+        email = email_entry.get().strip()
+        new_password = new_password_entry.get().strip()
+        if not email or not new_password:
+            message_label.configure(text="❌ Both fields are required.", text_color="red")
+            return
+        try:
+            response = requests.post(
+                "http://127.0.0.1:5000/reset-password",
+                json={"email": email, "new_password": new_password}
+            )
+            data = response.json()
+            if response.status_code == 200:
+                message_label.configure(text="✅ Password reset! Go to login.", text_color="green")
+            else:
+                message_label.configure(text=data.get("error", "Reset failed."), text_color="red")
+        except Exception as e:
+            message_label.configure(text=f"⚠ Error: {e}", text_color="red")
+
+    ctk.CTkButton(login_frame, text="🔄 Reset Password", command=reset_password, width=340, height=40, font=FONT_BUTTON).pack(pady=15)
+    ctk.CTkButton(login_frame, text="🔙 Back to Login", command=show_login, width=340, height=40).pack(pady=5)
 
 # ----------------------------- Show Chat -----------------------------
 def show_chat():
